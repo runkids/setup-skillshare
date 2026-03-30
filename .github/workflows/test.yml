@@ -32,9 +32,10 @@ jobs:
           source: ./my-skills
           targets: claude
       - run: skillshare sync
-      - run: test -L ~/.claude/skills/skillshare/SKILL.md
+      - run: ls ~/.claude/skills/
+      - run: test -e ~/.claude/skills/web-design-guidelines/SKILL.md
 
-  # Test 3: Install from remote repo
+  # Test 3: Install from remote repo (single skill)
   with-install:
     runs-on: ubuntu-latest
     steps:
@@ -43,9 +44,9 @@ jobs:
       - uses: ./
         with:
           targets: claude
-      - run: skillshare install runkids/my-skills --skill skillshare
+      - run: skillshare install runkids/my-skills --skill web-design-guidelines
       - run: skillshare sync
-      - run: test -L ~/.claude/skills/skillshare/SKILL.md
+      - run: test -e ~/.claude/skills/web-design-guidelines/SKILL.md
 
   # Test 4: Specific targets + mode
   with-targets:
@@ -80,7 +81,8 @@ jobs:
           remote: https://github.com/runkids/my-skills.git
           targets: claude
       - run: skillshare sync
-      - run: test -L ~/.claude/skills/skillshare/SKILL.md
+      - run: ls ~/.claude/skills/
+      - run: test -e ~/.claude/skills/web-design-guidelines/SKILL.md
 
   # Test 7: Pinned version
   pinned-version:
