@@ -71,15 +71,16 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github-token }}
+        INPUT_VERSION: ${{ inputs.version }}
       run: |
-        if [ "${{ inputs.version }}" = "latest" ]; then
+        if [ "$INPUT_VERSION" = "latest" ]; then
           VERSION=$(gh api repos/runkids/skillshare/releases/latest --jq '.tag_name' | sed 's/^v//')
           if [ -z "$VERSION" ]; then
             echo "::error::Failed to resolve latest version"
             exit 1
           fi
         else
-          VERSION="${{ inputs.version }}"
+          VERSION="$INPUT_VERSION"
         fi
         echo "version=$VERSION" >> "$GITHUB_OUTPUT"
         echo "Resolved skillshare version: $VERSION"
@@ -103,30 +104,42 @@ runs:
 
     - name: Initialize skillshare
       shell: bash
+      env:
+        INPUT_SOURCE: ${{ inputs.source }}
+        INPUT_TARGETS: ${{ inputs.targets }}
+        INPUT_MODE: ${{ inputs.mode }}
+        INPUT_GIT: ${{ inputs.git }}
+        INPUT_REMOTE: ${{ inputs.remote }}
       run: |
+        # Validate source directory if specified
+        if [ -n "$INPUT_SOURCE" ] && [ ! -d "$INPUT_SOURCE" ]; then
+          echo "::error::Source directory not found: $INPUT_SOURCE"
+          exit 1
+        fi
+
         INIT_ARGS="--no-copy --no-skill"
 
         # --source
-        if [ -n "${{ inputs.source }}" ]; then
-          INIT_ARGS="$INIT_ARGS --source ${{ inputs.source }}"
+        if [ -n "$INPUT_SOURCE" ]; then
+          INIT_ARGS="$INIT_ARGS --source $INPUT_SOURCE"
         fi
 
         # --targets or --all-targets
-        if [ -n "${{ inputs.targets }}" ]; then
-          INIT_ARGS="$INIT_ARGS --targets ${{ inputs.targets }}"
+        if [ -n "$INPUT_TARGETS" ]; then
+          INIT_ARGS="$INIT_ARGS --targets $INPUT_TARGETS"
         else
           INIT_ARGS="$INIT_ARGS --all-targets"
         fi
 
         # --mode
-        if [ -n "${{ inputs.mode }}" ]; then
-          INIT_ARGS="$INIT_ARGS --mode ${{ inputs.mode }}"
+        if [ -n "$INPUT_MODE" ]; then
+          INIT_ARGS="$INIT_ARGS --mode $INPUT_MODE"
         fi
 
         # --git / --no-git / --remote
-        if [ -n "${{ inputs.remote }}" ]; then
-          INIT_ARGS="$INIT_ARGS --remote ${{ inputs.remote }}"
-        elif [ "${{ inputs.git }}" = "true" ]; then
+        if [ -n "$INPUT_REMOTE" ]; then
+          INIT_ARGS="$INIT_ARGS --remote $INPUT_REMOTE"
+        elif [ "$INPUT_GIT" = "true" ]; then
           INIT_ARGS="$INIT_ARGS --git"
         else
           INIT_ARGS="$INIT_ARGS --no-git"
@@ -142,19 +155,24 @@ runs:
     - name: Run security audit
       if: inputs.audit == 'true'
       shell: bash
+      env:
+        INPUT_AUDIT_THRESHOLD: ${{ inputs.audit-threshold }}
+        INPUT_AUDIT_FORMAT: ${{ inputs.audit-format }}
+        INPUT_AUDIT_PROFILE: ${{ inputs.audit-profile }}
+        INPUT_AUDIT_OUTPUT: ${{ inputs.audit-output }}
       run: |
-        AUDIT_ARGS="--threshold ${{ inputs.audit-threshold }} --format ${{ inputs.audit-format }} --yes --no-tui"
+        AUDIT_ARGS="--threshold $INPUT_AUDIT_THRESHOLD --format $INPUT_AUDIT_FORMAT --yes --no-tui"
 
-        if [ -n "${{ inputs.audit-profile }}" ]; then
-          AUDIT_ARGS="$AUDIT_ARGS --profile ${{ inputs.audit-profile }}"
+        if [ -n "$INPUT_AUDIT_PROFILE" ]; then
+          AUDIT_ARGS="$AUDIT_ARGS --profile $INPUT_AUDIT_PROFILE"
         fi
 
         echo "Running: skillshare audit $AUDIT_ARGS"
 
-        if [ -n "${{ inputs.audit-output }}" ]; then
+        if [ -n "$INPUT_AUDIT_OUTPUT" ]; then
           # Save to file; don't fail on findings (let downstream steps decide)
-          skillshare audit $AUDIT_ARGS > "${{ inputs.audit-output }}" || true
-          echo "Audit results saved to ${{ inputs.audit-output }}"
+          skillshare audit $AUDIT_ARGS > "$INPUT_AUDIT_OUTPUT" || true
+          echo "Audit results saved to $INPUT_AUDIT_OUTPUT"
         else
           skillshare audit $AUDIT_ARGS
         fi
