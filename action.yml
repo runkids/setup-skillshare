@@ -26,6 +26,24 @@ inputs:
   remote:
     description: "Git remote URL for cross-machine sync (implies git: true)."
     required: false
+  audit:
+    description: "Run security audit after setup. Set to 'true' to enable."
+    required: false
+    default: "false"
+  audit-threshold:
+    description: "Audit severity threshold: critical, high, medium, low, info (or c, h, m, l, i)."
+    required: false
+    default: "high"
+  audit-format:
+    description: "Audit output format: text, json, sarif, markdown."
+    required: false
+    default: "text"
+  audit-profile:
+    description: "Audit profile preset: default, strict, permissive."
+    required: false
+  audit-output:
+    description: "File path to save audit results (e.g. skillshare-audit.sarif)."
+    required: false
   github-token:
     description: "GitHub token for API requests to avoid rate limits."
     required: false
@@ -120,3 +138,22 @@ runs:
     - name: Verify installation
       shell: bash
       run: skillshare version
+
+    - name: Run security audit
+      if: inputs.audit == 'true'
+      shell: bash
+      run: |
+        AUDIT_ARGS="--threshold ${{ inputs.audit-threshold }} --format ${{ inputs.audit-format }} --yes --no-tui"
+
+        if [ -n "${{ inputs.audit-profile }}" ]; then
+          AUDIT_ARGS="$AUDIT_ARGS --profile ${{ inputs.audit-profile }}"
+        fi
+
+        echo "Running: skillshare audit $AUDIT_ARGS"
+
+        if [ -n "${{ inputs.audit-output }}" ]; then
+          skillshare audit $AUDIT_ARGS > "${{ inputs.audit-output }}"
+          echo "Audit results saved to ${{ inputs.audit-output }}"
+        else
+          skillshare audit $AUDIT_ARGS
+        fi

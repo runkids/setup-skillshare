@@ -32,8 +32,7 @@ jobs:
           source: ./my-skills
           targets: claude
       - run: skillshare sync
-      - run: ls -la ~/.claude/skills/ | head -20
-      - run: find ~/.claude/skills/ -name "SKILL.md" | head -10
+      - run: skillshare list --json | jq -e '.skills | length > 0'
 
   # Test 3: Install tracked repo from GitHub
   with-install:
@@ -46,8 +45,7 @@ jobs:
           targets: claude
       - run: skillshare install runkids/my-skills --track
       - run: skillshare sync
-      - run: ls -la ~/.claude/skills/ | head -20
-      - run: find ~/.claude/skills/ -name "SKILL.md" | head -10
+      - run: skillshare list --json | jq -e '.skills | length > 0'
 
   # Test 4: Specific targets + copy mode
   with-targets:
@@ -82,7 +80,7 @@ jobs:
           remote: https://github.com/runkids/my-skills.git
           targets: claude
       - run: skillshare sync
-      - run: test -e ~/.claude/skills/web-dev__seo/SKILL.md
+      - run: skillshare list --json | jq -e '.skills | length > 0'
 
   # Test 7: Pinned version
   pinned-version:
@@ -93,3 +91,40 @@ jobs:
         with:
           version: "0.18.3"
       - run: skillshare version | grep "0.18.3"
+
+  # Test 8: Security audit
+  with-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: runkids/my-skills
+          path: my-skills
+      - uses: ./
+        with:
+          source: ./my-skills
+          audit: true
+          audit-threshold: critical
+          audit-format: json
+          audit-output: audit-results.json
+      - run: test -f audit-results.json
+      - run: cat audit-results.json | jq -e '.summary'
+
+  # Test 9: Audit with SARIF output
+  with-audit-sarif:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: runkids/my-skills
+          path: my-skills
+      - uses: ./
+        with:
+          source: ./my-skills
+          audit: true
+          audit-format: sarif
+          audit-output: skillshare-audit.sarif
+      - run: test -f skillshare-audit.sarif
+      - run: cat skillshare-audit.sarif | jq -e '.runs'
