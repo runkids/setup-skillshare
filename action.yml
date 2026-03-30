@@ -93,17 +93,25 @@ runs:
 
     - name: Install skillshare
       shell: bash
+      env:
+        VERSION: ${{ steps.version.outputs.version }}
+        OS: ${{ steps.platform.outputs.os }}
+        ARCH: ${{ steps.platform.outputs.arch }}
       run: |
-        VERSION="${{ steps.version.outputs.version }}"
-        OS="${{ steps.platform.outputs.os }}"
-        ARCH="${{ steps.platform.outputs.arch }}"
-        URL="https://github.com/runkids/skillshare/releases/download/v${VERSION}/skillshare_${VERSION}_${OS}_${ARCH}.tar.gz"
-
         INSTALL_DIR="$RUNNER_TOOL_CACHE/skillshare/${VERSION}"
+
+        # Skip download if already cached from a previous step/job in this run
+        if [ -x "$INSTALL_DIR/skillshare" ]; then
+          echo "skillshare ${VERSION} already cached at $INSTALL_DIR, skipping download"
+          echo "$INSTALL_DIR" >> "$GITHUB_PATH"
+          exit 0
+        fi
+
+        URL="https://github.com/runkids/skillshare/releases/download/v${VERSION}/skillshare_${VERSION}_${OS}_${ARCH}.tar.gz"
         mkdir -p "$INSTALL_DIR"
 
         echo "Downloading skillshare ${VERSION} for ${OS}/${ARCH}..."
-        curl -fsSL "$URL" | tar xz -C "$INSTALL_DIR"
+        curl --retry 3 --retry-delay 1 -fsSL "$URL" | tar xz -C "$INSTALL_DIR"
         chmod +x "$INSTALL_DIR/skillshare"
 
         echo "$INSTALL_DIR" >> "$GITHUB_PATH"
