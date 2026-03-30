@@ -15,8 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./
-      - run: skillshare version
-      - run: test -f ~/.config/skillshare/config.yaml
+      - run: ./scripts/test.sh
 
   # Test 2: With source directory
   with-source:
