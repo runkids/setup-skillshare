@@ -26,6 +26,10 @@ inputs:
   remote:
     description: "Git remote URL for cross-machine sync (implies git: true)."
     required: false
+  project:
+    description: "Use project-level skills (.skillshare/ in current directory)."
+    required: false
+    default: "false"
   audit:
     description: "Run security audit after setup. Set to 'true' to enable."
     required: false
@@ -48,6 +52,14 @@ inputs:
     description: "GitHub token for API requests to avoid rate limits."
     required: false
     default: ${{ github.token }}
+
+outputs:
+  version:
+    description: "The installed skillshare version"
+    value: ${{ steps.version.outputs.version }}
+  audit-exit-code:
+    description: "Audit exit code (0 = clean, 1 = findings)"
+    value: ${{ steps.audit.outputs.exit-code }}
 
 runs:
   using: composite
@@ -124,6 +136,7 @@ runs:
         INPUT_MODE: ${{ inputs.mode }}
         INPUT_GIT: ${{ inputs.git }}
         INPUT_REMOTE: ${{ inputs.remote }}
+        INPUT_PROJECT: ${{ inputs.project }}
       run: |
         # Validate source directory if specified
         if [ -n "$INPUT_SOURCE" ] && [ ! -d "$INPUT_SOURCE" ]; then
@@ -132,6 +145,9 @@ runs:
         fi
 
         INIT_ARGS="--no-copy --no-skill"
+
+        # --project
+        [ "$INPUT_PROJECT" = "true" ] && INIT_ARGS="$INIT_ARGS -p"
 
         # --source
         if [ -n "$INPUT_SOURCE" ]; then
@@ -167,6 +183,7 @@ runs:
       run: skillshare version
 
     - name: Run security audit
+      id: audit
       if: inputs.audit == 'true'
       shell: bash
       env:
@@ -174,8 +191,12 @@ runs:
         INPUT_AUDIT_FORMAT: ${{ inputs.audit-format }}
         INPUT_AUDIT_PROFILE: ${{ inputs.audit-profile }}
         INPUT_AUDIT_OUTPUT: ${{ inputs.audit-output }}
+        INPUT_PROJECT: ${{ inputs.project }}
       run: |
         AUDIT_ARGS="--threshold $INPUT_AUDIT_THRESHOLD --format $INPUT_AUDIT_FORMAT --yes --no-tui"
+
+        # --project
+        [ "$INPUT_PROJECT" = "true" ] && AUDIT_ARGS="$AUDIT_ARGS -p"
 
         if [ -n "$INPUT_AUDIT_PROFILE" ]; then
           AUDIT_ARGS="$AUDIT_ARGS --profile $INPUT_AUDIT_PROFILE"
@@ -184,9 +205,19 @@ runs:
         echo "Running: skillshare audit $AUDIT_ARGS"
 
         if [ -n "$INPUT_AUDIT_OUTPUT" ]; then
-          # Save to file; don't fail on findings (let downstream steps decide)
-          skillshare audit $AUDIT_ARGS > "$INPUT_AUDIT_OUTPUT" || true
+          # Save to file; capture exit code for output (let downstream decide)
+          set +e
+          skillshare audit $AUDIT_ARGS > "$INPUT_AUDIT_OUTPUT"
+          EXIT_CODE=$?
+          set -e
+          echo "exit-code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
           echo "Audit results saved to $INPUT_AUDIT_OUTPUT"
         else
+          # No output file — propagate exit code directly
+          set +e
           skillshare audit $AUDIT_ARGS
+          EXIT_CODE=$?
+          set -e
+          echo "exit-code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
+          exit $EXIT_CODE
         fi
