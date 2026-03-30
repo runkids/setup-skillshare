@@ -95,6 +95,19 @@ Create a fresh source directory with git initialized (useful for new setups).
     git: true
 ```
 
+### Project-level skills
+
+Use project-level skills from `.skillshare/` in the current directory.
+
+```yaml
+- uses: actions/checkout@v4
+- uses: runkids/setup-skillshare@v1
+  with:
+    project: true
+    targets: claude,cursor
+- run: skillshare sync -p
+```
+
 ### Pin a specific skillshare version
 
 ```yaml
@@ -222,6 +235,7 @@ jobs:
 | `mode` | Sync mode: `merge`, `copy`, or `symlink` | `merge` |
 | `git` | Initialize git in source directory | `false` |
 | `remote` | Git remote URL for cross-machine sync (implies `git: true`) | — |
+| `project` | Use project-level skills (`.skillshare/`) | `false` |
 | `github-token` | GitHub token for API requests to avoid rate limits | `${{ github.token }}` |
 
 ### Audit
@@ -233,6 +247,26 @@ jobs:
 | `audit-format` | Output format: `text`, `json`, `sarif`, `markdown` | `text` |
 | `audit-profile` | Audit profile: `default`, `strict`, `permissive` | — |
 | `audit-output` | File path to save audit results | — |
+
+## Outputs
+
+| Output | Description |
+|--------|-------------|
+| `version` | The installed skillshare version |
+| `audit-exit-code` | Audit exit code: `0` = clean, `1` = findings |
+
+### Using outputs
+
+```yaml
+- uses: runkids/setup-skillshare@v1
+  id: skillshare
+  with:
+    source: ./skills
+    audit: true
+    audit-output: audit.sarif
+- run: echo "Installed ${{ steps.skillshare.outputs.version }}"
+- run: echo "Audit result: ${{ steps.skillshare.outputs.audit-exit-code }}"
+```
 
 ## How it works
 
