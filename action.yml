@@ -74,7 +74,13 @@ runs:
         INPUT_VERSION: ${{ inputs.version }}
       run: |
         if [ "$INPUT_VERSION" = "latest" ]; then
-          VERSION=$(gh api repos/runkids/skillshare/releases/latest --jq '.tag_name' | sed 's/^v//')
+          # Primary: curl HTTP redirect (no gh CLI needed)
+          VERSION=$(curl -sI "https://github.com/runkids/skillshare/releases/latest" \
+            | grep -i "^location:" | sed 's/.*tag\/v\([^[:space:]]*\).*/\1/' | tr -d '\r')
+          # Fallback: gh API (if curl redirect fails and gh is available)
+          if [ -z "$VERSION" ] && command -v gh &>/dev/null; then
+            VERSION=$(gh api repos/runkids/skillshare/releases/latest --jq '.tag_name' | sed 's/^v//')
+          fi
           if [ -z "$VERSION" ]; then
             echo "::error::Failed to resolve latest version"
             exit 1
