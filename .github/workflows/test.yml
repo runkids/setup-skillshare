@@ -1,0 +1,68 @@
+name: Test Action
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # Test 1: Basic install + init (no source)
+  basic:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+      - run: skillshare version
+      - run: test -f ~/.config/skillshare/config.yaml
+
+  # Test 2: With source directory
+  with-source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create test skills
+        run: |
+          mkdir -p skills/my-skill
+          echo -e "---\nname: my-skill\n---\n# Test" > skills/my-skill/SKILL.md
+      - uses: ./
+        with:
+          source: ./skills
+      - run: skillshare version
+      - run: test -f ~/.config/skillshare/config.yaml
+      - run: skillshare sync
+
+  # Test 3: Specific targets + mode
+  with-targets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          targets: claude
+          mode: copy
+      - run: skillshare version
+      - run: grep -q "claude" ~/.config/skillshare/config.yaml
+
+  # Test 4: With git enabled
+  with-git:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          git: true
+      - run: skillshare version
+      - run: test -d ~/.config/skillshare/skills/.git
+
+  # Test 5: Pinned version
+  pinned-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          version: "0.18.3"
+      - run: skillshare version | grep "0.18.3"
