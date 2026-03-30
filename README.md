@@ -270,23 +270,37 @@ jobs:
 
 ## How it works
 
-```
-1. Download and install skillshare binary
-2. Run `skillshare init` with CI-friendly defaults (--no-copy --no-skill)
-3. Configure source, targets, mode, git/remote based on inputs
-4. Optionally run `skillshare audit` with threshold and format
-```
+1. **Download** skillshare binary (with retry, cached in `$RUNNER_TOOL_CACHE`)
+2. **Initialize** via `skillshare init` with CI-friendly defaults
+3. **Audit** (optional) with configurable threshold and output format
 
 The action always runs `skillshare init` to create `config.yaml` — this is required before any skillshare operation. After setup, run `skillshare sync`, `skillshare install`, or any other command in subsequent steps.
 
-### CI-friendly defaults
+### Global mode (default)
 
-The action hardcodes these init flags for non-interactive CI environments:
+```
+skillshare init --no-copy --no-skill --all-targets --no-git [--source] [--targets] [--mode] [--git] [--remote]
+```
 
 - `--no-copy` — skip interactive copy-from prompt
 - `--no-skill` — skip built-in skill installation
 - `--no-git` — by default (override with `git: true` or `remote`)
 - `--all-targets` — by default (override with `targets`)
+
+### Project mode (`project: true`)
+
+```
+skillshare init -p [--targets] [--mode]
+```
+
+Project mode only accepts `--targets` and `--mode`. Flags like `--source`, `--git`, `--remote` are not applicable — project skills live in `.skillshare/` of the current directory.
+
+### Reliability
+
+- **No `gh` CLI dependency** — version resolution uses HTTP redirect, falls back to `gh api` if available. Works on self-hosted runners.
+- **Download retry** — `curl --retry 3` for transient network failures
+- **Same-run cache** — binary cached in `$RUNNER_TOOL_CACHE`, skipped if already downloaded
+- **Shell safety** — all inputs passed through `env:` vars, never expanded directly in shell
 
 ## Supported platforms
 
