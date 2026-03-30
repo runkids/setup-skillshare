@@ -152,7 +152,8 @@ runs:
         echo "Running: skillshare audit $AUDIT_ARGS"
 
         if [ -n "${{ inputs.audit-output }}" ]; then
-          skillshare audit $AUDIT_ARGS > "${{ inputs.audit-output }}"
+          # Save to file; don't fail on findings (let downstream steps decide)
+          skillshare audit $AUDIT_ARGS > "${{ inputs.audit-output }}" || true
           echo "Audit results saved to ${{ inputs.audit-output }}"
         else
           skillshare audit $AUDIT_ARGS
