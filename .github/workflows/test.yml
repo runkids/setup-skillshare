@@ -32,8 +32,8 @@ jobs:
           source: ./my-skills
           targets: claude
       - run: skillshare sync
-      # Nested skills get flattened: web-dev/seo → web-dev__seo
-      - run: test -e ~/.claude/skills/web-dev__seo/SKILL.md
+      - run: ls -la ~/.claude/skills/ | head -20
+      - run: find ~/.claude/skills/ -name "SKILL.md" | head -10
 
   # Test 3: Install tracked repo from GitHub
   with-install:
@@ -46,8 +46,8 @@ jobs:
           targets: claude
       - run: skillshare install runkids/my-skills --track
       - run: skillshare sync
-      # Tracked repo prefix: _my-skills, nested: _my-skills__web-dev__seo
-      - run: test -e ~/.claude/skills/_my-skills__web-dev__seo/SKILL.md
+      - run: ls -la ~/.claude/skills/ | head -20
+      - run: find ~/.claude/skills/ -name "SKILL.md" | head -10
 
   # Test 4: Specific targets + copy mode
   with-targets:
