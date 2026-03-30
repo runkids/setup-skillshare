@@ -26,6 +26,7 @@ jobs:
         with:
           repository: runkids/my-skills
           path: my-skills
+      - run: mkdir -p ~/.claude/skills
       - uses: ./
         with:
           source: ./my-skills
@@ -38,8 +39,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: mkdir -p ~/.claude/skills
       - uses: ./
-      - run: skillshare install runkids/my-skills --skill skillshare --yes
+        with:
+          targets: claude
+      - run: skillshare install runkids/my-skills --skill skillshare
       - run: skillshare sync
       - run: test -L ~/.claude/skills/skillshare/SKILL.md
 
@@ -48,6 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: mkdir -p ~/.claude/skills
       - uses: ./
         with:
           targets: claude
@@ -69,6 +74,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: mkdir -p ~/.claude/skills
       - uses: ./
         with:
           remote: https://github.com/runkids/my-skills.git
