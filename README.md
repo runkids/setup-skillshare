@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: runkids/setup-skillshare@v1
-      - run: skillshare init
+      - run: skillshare install your-org/skills --yes
       - run: skillshare sync
 ```
 
