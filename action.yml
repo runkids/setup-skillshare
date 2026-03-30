@@ -1,5 +1,5 @@
 name: Setup Skillshare
-description: Install skillshare CLI for managing AI coding skills
+description: Install and initialize skillshare CLI for managing AI coding skills
 author: runkids
 branding:
   icon: package
@@ -10,6 +10,22 @@ inputs:
     description: "Skillshare version to install (without v prefix). Defaults to latest."
     required: false
     default: "latest"
+  source:
+    description: "Path to skills source directory (passed to --source)."
+    required: false
+  targets:
+    description: "Comma-separated target names (e.g. claude,cursor). Defaults to all detected."
+    required: false
+  mode:
+    description: "Sync mode: merge, copy, or symlink."
+    required: false
+  git:
+    description: "Initialize git in source directory. Set to 'true' to enable."
+    required: false
+    default: "false"
+  remote:
+    description: "Git remote URL for cross-machine sync (implies git: true)."
+    required: false
   github-token:
     description: "GitHub token for API requests to avoid rate limits."
     required: false
@@ -66,6 +82,40 @@ runs:
         chmod +x "$INSTALL_DIR/skillshare"
 
         echo "$INSTALL_DIR" >> "$GITHUB_PATH"
+
+    - name: Initialize skillshare
+      shell: bash
+      run: |
+        INIT_ARGS="--no-copy --no-skill"
+
+        # --source
+        if [ -n "${{ inputs.source }}" ]; then
+          INIT_ARGS="$INIT_ARGS --source ${{ inputs.source }}"
+        fi
+
+        # --targets or --all-targets
+        if [ -n "${{ inputs.targets }}" ]; then
+          INIT_ARGS="$INIT_ARGS --targets ${{ inputs.targets }}"
+        else
+          INIT_ARGS="$INIT_ARGS --all-targets"
+        fi
+
+        # --mode
+        if [ -n "${{ inputs.mode }}" ]; then
+          INIT_ARGS="$INIT_ARGS --mode ${{ inputs.mode }}"
+        fi
+
+        # --git / --no-git / --remote
+        if [ -n "${{ inputs.remote }}" ]; then
+          INIT_ARGS="$INIT_ARGS --remote ${{ inputs.remote }}"
+        elif [ "${{ inputs.git }}" = "true" ]; then
+          INIT_ARGS="$INIT_ARGS --git"
+        else
+          INIT_ARGS="$INIT_ARGS --no-git"
+        fi
+
+        echo "Running: skillshare init $INIT_ARGS"
+        skillshare init $INIT_ARGS
 
     - name: Verify installation
       shell: bash
