@@ -128,3 +128,42 @@ jobs:
           audit-output: skillshare-audit.sarif
       - run: test -f skillshare-audit.sarif
       - run: cat skillshare-audit.sarif | jq -e '.runs'
+
+  # Test 10: Project mode
+  with-project:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          mkdir -p .skillshare/skills/test-skill
+          echo -e "---\nname: test-skill\n---\n# Test" > .skillshare/skills/test-skill/SKILL.md
+      - run: mkdir -p .claude/skills
+      - uses: ./
+        with:
+          project: true
+          targets: claude
+      - run: test -f .skillshare/config.yaml
+
+  # Test 11: Outputs
+  with-outputs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        id: skillshare
+      - run: |
+          VERSION="${{ steps.skillshare.outputs.version }}"
+          if [ -z "$VERSION" ]; then
+            echo "::error::version output is empty"
+            exit 1
+          fi
+          echo "Installed version: $VERSION"
+
+  # Test 12: Same-run cache
+  with-cache:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+      - name: Run action again (should use cache)
+        uses: ./
