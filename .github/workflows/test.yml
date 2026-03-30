@@ -17,7 +17,7 @@ jobs:
       - uses: ./
       - run: ./scripts/test.sh
 
-  # Test 2: With source directory (checkout a real skills repo)
+  # Test 2: Team skills repo as source → sync to claude
   with-source:
     runs-on: ubuntu-latest
     steps:
@@ -32,10 +32,10 @@ jobs:
           source: ./my-skills
           targets: claude
       - run: skillshare sync
-      - run: ls ~/.claude/skills/ | head -20
-      - run: test -d ~/.claude/skills/ && find ~/.claude/skills/ -name "SKILL.md" | head -5
+      # Nested skills get flattened: web-dev/seo → web-dev__seo
+      - run: test -e ~/.claude/skills/web-dev__seo/SKILL.md
 
-  # Test 3: Install from remote repo (single skill)
+  # Test 3: Install tracked repo from GitHub
   with-install:
     runs-on: ubuntu-latest
     steps:
@@ -44,11 +44,12 @@ jobs:
       - uses: ./
         with:
           targets: claude
-      - run: skillshare install runkids/my-skills --skill web-design-guidelines
+      - run: skillshare install runkids/my-skills --track
       - run: skillshare sync
-      - run: find ~/.claude/skills/ -name "SKILL.md" | head -5
+      # Tracked repo prefix: _my-skills, nested: _my-skills__web-dev__seo
+      - run: test -e ~/.claude/skills/_my-skills__web-dev__seo/SKILL.md
 
-  # Test 4: Specific targets + mode
+  # Test 4: Specific targets + copy mode
   with-targets:
     runs-on: ubuntu-latest
     steps:
@@ -70,7 +71,7 @@ jobs:
           git: true
       - run: test -d ~/.config/skillshare/skills/.git
 
-  # Test 6: Git remote (clone skills repo as source)
+  # Test 6: Git remote → auto-pull skills → sync
   with-remote:
     runs-on: ubuntu-latest
     steps:
@@ -81,8 +82,7 @@ jobs:
           remote: https://github.com/runkids/my-skills.git
           targets: claude
       - run: skillshare sync
-      - run: ls ~/.claude/skills/ | head -20
-      - run: test -d ~/.claude/skills/ && find ~/.claude/skills/ -name "SKILL.md" | head -5
+      - run: test -e ~/.claude/skills/web-dev__seo/SKILL.md
 
   # Test 7: Pinned version
   pinned-version:
