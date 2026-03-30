@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Assertion tests for setup-skillshare action
-set -euo pipefail
+set -uo pipefail
 
 PASS=0
 FAIL=0
@@ -10,10 +10,10 @@ assert() {
   shift
   if "$@" >/dev/null 2>&1; then
     echo "✓ $description"
-    ((PASS++))
+    PASS=$((PASS + 1))
   else
     echo "✗ $description"
-    ((FAIL++))
+    FAIL=$((FAIL + 1))
   fi
 }
 
@@ -23,10 +23,10 @@ assert_contains() {
   local expected="$3"
   if echo "$actual" | grep -q "$expected"; then
     echo "✓ $description"
-    ((PASS++))
+    PASS=$((PASS + 1))
   else
     echo "✗ $description (expected '$expected' in '$actual')"
-    ((FAIL++))
+    FAIL=$((FAIL + 1))
   fi
 }
 
