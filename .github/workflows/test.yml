@@ -159,11 +159,14 @@ jobs:
           fi
           echo "Installed version: $VERSION"
 
-  # Test 12: Same-run cache
+  # Test 12: Same-run cache (binary already in RUNNER_TOOL_CACHE)
   with-cache:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: ./
-      - name: Run action again (should use cache)
-        uses: ./
+      - name: Verify binary is cached
+        run: |
+          VERSION=$(skillshare version 2>&1 | grep -oP '\d+\.\d+\.\d+' | head -1)
+          test -x "$RUNNER_TOOL_CACHE/skillshare/${VERSION}/skillshare"
+          echo "Binary cached at $RUNNER_TOOL_CACHE/skillshare/${VERSION}/skillshare"

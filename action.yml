@@ -138,41 +138,37 @@ runs:
         INPUT_REMOTE: ${{ inputs.remote }}
         INPUT_PROJECT: ${{ inputs.project }}
       run: |
-        # Validate source directory if specified
-        if [ -n "$INPUT_SOURCE" ] && [ ! -d "$INPUT_SOURCE" ]; then
-          echo "::error::Source directory not found: $INPUT_SOURCE"
-          exit 1
-        fi
-
-        INIT_ARGS="--no-copy --no-skill"
-
-        # --project
-        [ "$INPUT_PROJECT" = "true" ] && INIT_ARGS="$INIT_ARGS -p"
-
-        # --source
-        if [ -n "$INPUT_SOURCE" ]; then
-          INIT_ARGS="$INIT_ARGS --source $INPUT_SOURCE"
-        fi
-
-        # --targets or --all-targets
-        if [ -n "$INPUT_TARGETS" ]; then
-          INIT_ARGS="$INIT_ARGS --targets $INPUT_TARGETS"
+        if [ "$INPUT_PROJECT" = "true" ]; then
+          # Project mode: init -p only accepts --targets, --mode
+          INIT_ARGS="-p"
+          if [ -n "$INPUT_TARGETS" ]; then
+            INIT_ARGS="$INIT_ARGS --targets $INPUT_TARGETS"
+          fi
+          [ -n "$INPUT_MODE" ] && INIT_ARGS="$INIT_ARGS --mode $INPUT_MODE"
         else
-          INIT_ARGS="$INIT_ARGS --all-targets"
-        fi
+          # Global mode
+          INIT_ARGS="--no-copy --no-skill"
 
-        # --mode
-        if [ -n "$INPUT_MODE" ]; then
-          INIT_ARGS="$INIT_ARGS --mode $INPUT_MODE"
-        fi
+          if [ -n "$INPUT_SOURCE" ] && [ ! -d "$INPUT_SOURCE" ]; then
+            echo "::error::Source directory not found: $INPUT_SOURCE"
+            exit 1
+          fi
+          [ -n "$INPUT_SOURCE" ] && INIT_ARGS="$INIT_ARGS --source $INPUT_SOURCE"
 
-        # --git / --no-git / --remote
-        if [ -n "$INPUT_REMOTE" ]; then
-          INIT_ARGS="$INIT_ARGS --remote $INPUT_REMOTE"
-        elif [ "$INPUT_GIT" = "true" ]; then
-          INIT_ARGS="$INIT_ARGS --git"
-        else
-          INIT_ARGS="$INIT_ARGS --no-git"
+          if [ -n "$INPUT_TARGETS" ]; then
+            INIT_ARGS="$INIT_ARGS --targets $INPUT_TARGETS"
+          else
+            INIT_ARGS="$INIT_ARGS --all-targets"
+          fi
+          [ -n "$INPUT_MODE" ] && INIT_ARGS="$INIT_ARGS --mode $INPUT_MODE"
+
+          if [ -n "$INPUT_REMOTE" ]; then
+            INIT_ARGS="$INIT_ARGS --remote $INPUT_REMOTE"
+          elif [ "$INPUT_GIT" = "true" ]; then
+            INIT_ARGS="$INIT_ARGS --git"
+          else
+            INIT_ARGS="$INIT_ARGS --no-git"
+          fi
         fi
 
         echo "Running: skillshare init $INIT_ARGS"
