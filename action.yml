@@ -1,0 +1,72 @@
+name: Setup Skillshare
+description: Install skillshare CLI for managing AI coding skills
+author: runkids
+branding:
+  icon: package
+  color: blue
+
+inputs:
+  version:
+    description: "Skillshare version to install (without v prefix). Defaults to latest."
+    required: false
+    default: "latest"
+  github-token:
+    description: "GitHub token for API requests to avoid rate limits."
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: composite
+  steps:
+    - name: Detect platform
+      id: platform
+      shell: bash
+      run: |
+        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+        ARCH=$(uname -m)
+        case "$ARCH" in
+          x86_64|amd64) ARCH="amd64" ;;
+          arm64|aarch64) ARCH="arm64" ;;
+          *) echo "::error::Unsupported architecture: $ARCH"; exit 1 ;;
+        esac
+        echo "os=$OS" >> "$GITHUB_OUTPUT"
+        echo "arch=$ARCH" >> "$GITHUB_OUTPUT"
+
+    - name: Resolve version
+      id: version
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        if [ "${{ inputs.version }}" = "latest" ]; then
+          VERSION=$(gh api repos/runkids/skillshare/releases/latest --jq '.tag_name' | sed 's/^v//')
+          if [ -z "$VERSION" ]; then
+            echo "::error::Failed to resolve latest version"
+            exit 1
+          fi
+        else
+          VERSION="${{ inputs.version }}"
+        fi
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+        echo "Resolved skillshare version: $VERSION"
+
+    - name: Install skillshare
+      shell: bash
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        OS="${{ steps.platform.outputs.os }}"
+        ARCH="${{ steps.platform.outputs.arch }}"
+        URL="https://github.com/runkids/skillshare/releases/download/v${VERSION}/skillshare_${VERSION}_${OS}_${ARCH}.tar.gz"
+
+        INSTALL_DIR="$RUNNER_TOOL_CACHE/skillshare/${VERSION}"
+        mkdir -p "$INSTALL_DIR"
+
+        echo "Downloading skillshare ${VERSION} for ${OS}/${ARCH}..."
+        curl -fsSL "$URL" | tar xz -C "$INSTALL_DIR"
+        chmod +x "$INSTALL_DIR/skillshare"
+
+        echo "$INSTALL_DIR" >> "$GITHUB_PATH"
+
+    - name: Verify installation
+      shell: bash
+      run: skillshare version
